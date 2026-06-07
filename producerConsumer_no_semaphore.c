@@ -1,18 +1,13 @@
 #include<stdio.h>
 
-int mutex = 1, full = 0, empty = 3;
-int item = 0;
+int mutex = 1, full = 0, empty = 5;
+int buffer[5];
+int in = 0, out = 0;
 
-int wait(int *s)
+void wait(int *s)
 {
     if(*s > 0)
-    {
         (*s)--;
-        return 1;
-    }
-
-    printf("Blocked\n");
-    return 0;
 }
 
 void signal(int *s)
@@ -20,35 +15,39 @@ void signal(int *s)
     (*s)++;
 }
 
-void producer()
+void produce(int item)
 {
-    if(wait(&empty) && wait(&mutex))
-    {
-        item++;
+    wait(&empty);
+    wait(&mutex);
 
-        printf("Produced Item %d\n", item);
+    buffer[in] = item;
+    printf("Produced item %d\n", item);
 
-        signal(&mutex);
-        signal(&full);
-    }
+    in = (in + 1) % 5;
+
+    signal(&mutex);
+    signal(&full);
 }
 
-void consumer()
+void consume()
 {
-    if(wait(&full) && wait(&mutex))
-    {
-        printf("Consumed Item %d\n", item);
+    int item;
 
-        item--;
+    wait(&full);
+    wait(&mutex);
 
-        signal(&mutex);
-        signal(&empty);
-    }
+    item = buffer[out];
+    printf("Consumed item %d\n", item);
+
+    out = (out + 1) % 5;
+
+    signal(&mutex);
+    signal(&empty);
 }
 
 int main()
 {
-    int ch;
+    int ch, item;
 
     while(1)
     {
@@ -56,15 +55,39 @@ int main()
         printf("\n2. Consume");
         printf("\n3. Exit");
         printf("\nEnter choice: ");
-        scanf("%d",&ch);
+        scanf("%d", &ch);
 
         switch(ch)
         {
-            case 1: producer(); break;
-            case 2: consumer(); break;
-            case 3: return 0;
-        }
+            case 1:
+                if(empty > 0)
+                {
+                    printf("Enter item: ");
+                    scanf("%d", &item);
+                    produce(item);
+                }
+                else
+                {
+                    printf("Buffer Full\n");
+                }
+                break;
 
-        printf("Full=%d Empty=%d\n",full,empty);
+            case 2:
+                if(full > 0)
+                {
+                    consume();
+                }
+                else
+                {
+                    printf("Buffer Empty\n");
+                }
+                break;
+
+            case 3:
+                return 0;
+
+            default:
+                printf("Invalid Choice\n");
+        }
     }
 }
